@@ -1,6 +1,4 @@
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStreamReader;
+import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.nio.charset.StandardCharsets;
@@ -57,9 +55,14 @@ public class Server {
             Socket s = ss.accept();
             System.out.println("Client connected");
 
-            // Read message from the client
+            // Declare a buffered reader
             BufferedReader reader = new BufferedReader(
                     new InputStreamReader(s.getInputStream(), StandardCharsets.UTF_8));
+
+            // Declare an Output Writer
+            PrintWriter out = new PrintWriter(
+                    new OutputStreamWriter (s.getOutputStream()), true
+            );
 
             String line;
 
@@ -74,13 +77,15 @@ public class Server {
                 }
                 String result = server.delegate(commands);
 
-                System.out.println("Result: " + result);
+                out.println(result);
 
             }
 
-            // Close socket
-            s.close();
+            // Close connections
 
+            reader.close();
+            out.close();
+            s.close();
             ss.close();
 
         } catch (IOException e) {

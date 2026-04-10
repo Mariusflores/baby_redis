@@ -1,6 +1,4 @@
-import java.io.IOException;
-import java.io.OutputStreamWriter;
-import java.io.PrintWriter;
+import java.io.*;
 import java.net.Socket;
 import java.nio.charset.StandardCharsets;
 
@@ -13,11 +11,22 @@ public class Client {
             PrintWriter out = new PrintWriter(
                     new OutputStreamWriter(s.getOutputStream(), StandardCharsets.UTF_8), true
             );
+            BufferedReader reader = new BufferedReader(
+                    new InputStreamReader(s.getInputStream(), StandardCharsets.UTF_8)
+            );
 
             out.println("SET foo bar");
+            System.out.printf("Result: %s%n", reader.readLine());
+
             out.println("GET foo");
+            System.out.printf("Result: %s%n", reader.readLine());
+
             out.println("DELETE foo");
+            System.out.printf("Result: %s%n", reader.readLine());
+
             out.println("GET foo");
+            System.out.printf("Result: %s%n", reader.readLine());
+
 
             // Closing connections
 
