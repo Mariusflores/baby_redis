@@ -1,38 +1,74 @@
+package server;
+
 import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
+import java.util.concurrent.DelayQueue;
+import java.util.concurrent.Delayed;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 public class Server {
     private final InMemoryStore store = new InMemoryStore();
+    private final DelayQueue<Delayed> expireQueue = new DelayQueue<>();
+    private final BufferedWriter fileWriter = new BufferedWriter(new FileWriter("queries.txt", true));
 
-    private String delegate(String[] commands) {
+    public Server() throws IOException {
+        replay();
+    }
+
+    private void replay() throws IOException {
+        BufferedReader reader = new BufferedReader(new FileReader("queries.txt"));
+        String line;
+        while ((line = reader.readLine()) != null) {
+            String[] params = parseOperation(line);
+            String operation = params[0];
+            String key = params[1];
+
+            switch (operation.toUpperCase()) {
+                case "SET" -> {
+                    var values = Arrays.copyOfRange(params, 2, params.length);
+                    String value = String.join(" ", values).trim();
+
+                    store.set(key, value);
+                }
+
+                case "DELETE" -> {
+                    store.delete(key);
+
+                }
+                case "SADD" -> {
+                    var values = Arrays.copyOfRange(params, 2, params.length);
+                    store.sAdd(key, values);
+                }
+                case "SREM" -> {
+                    var values = Arrays.copyOfRange(params, 2, params.length);
+                    store.sRem(key, values);
+                }
+            }
+        }
+    }
+
+    private String delegate(String line) {
+        String[] commands = parseOperation(line);
         if (commands.length < 2) {
             return "ERR expected at least <2> arguments";
         }
         // Input format i.e. SET hello world
-        String command = commands[0];
+        String operation = commands[0];
         String key = commands[1];
 
-
-        switch (command.toUpperCase()) {
+        switch (operation.toUpperCase()) {
             case "SET" -> {
-                StringBuilder builder = new StringBuilder();
                 var values = Arrays.copyOfRange(commands, 2, commands.length);
-
-                if (commands.length > 2) {
-                    for (String value : values) {
-                        builder.append(value).append(" ");
-                    }
-
-                }
-                if (builder.toString().isEmpty()) {
+                String value = String.join(" ", values).trim();
+                if (value.isEmpty()) {
                     return "ERR Value isnt provided";
                 }
-                store.set(key, builder.toString().trim());
+                store.set(key, value);
+                writeToFile(line);
                 return "OK";
             }
             case "GET" -> {
@@ -41,17 +77,22 @@ public class Server {
             }
             case "DELETE" -> {
                 store.delete(key);
+                writeToFile(line);
+
                 return "OK";
             }
             case "SADD" -> {
                 var values = Arrays.copyOfRange(commands, 2, commands.length);
                 store.sAdd(key, values);
+                writeToFile(line);
+
                 return "OK";
             }
             case "SREM" -> {
                 var values = Arrays.copyOfRange(commands, 2, commands.length);
 
                 store.sRem(key, values);
+                writeToFile(line);
                 return "OK";
             }
             case "SISMEMBER", "SIM" -> {
@@ -79,20 +120,44 @@ public class Server {
         }
     }
 
+    public void close() throws IOException {
+        fileWriter.close();
+    }
+
+    private String[] parseOperation(String line) {
+        return line.trim().split(" ");
+    }
+
+    private void writeToFile(String line) {
+        try {
+            fileWriter.write(line + "\n");
+            fileWriter.flush();
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
 
     public static void main(String[] args) {
-        Server server = new Server();
-
-        System.out.println("Starting server...");
-
         try (
+                // Create a ServerSocket listening on port 6379
                 ServerSocket ss = new ServerSocket(6379);
                 ExecutorService executor = Executors.newFixedThreadPool(10)
         ) {
-            // Create a ServerSocket listening on port 6379
+            Server server = new Server();
+            System.out.println("Starting server...");
 
-            System.out.println("Server started listening on port 6379... ");
+            System.out.println("server.Server started listening on port 6379... ");
 
+            // Shutdown hook to close server.Server file writer
+            Thread closeServerHook = new Thread(() -> {
+                try {
+                    server.close();
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
+            });
+            Runtime.getRuntime().addShutdownHook(closeServerHook);
 
             //noinspection InfiniteLoopStatement
             while (true) {
@@ -101,8 +166,6 @@ public class Server {
                 // Accept a connection from a client
                 Socket s = ss.accept();
                 System.out.println("Client connected");
-                //Declare a file writer
-                BufferedWriter fileWriter = new BufferedWriter(new FileWriter("queries.txt"));
 
                 Runnable task = () -> {
                     try {
@@ -122,24 +185,22 @@ public class Server {
                         while ((line = reader.readLine()) != null) {
                             System.out.println("Command " + line);
 
-                            fileWriter.write(line + "\n");
-                            String[] commands = line.trim().split(" ");
-
-                            if (commands.length == 1 && commands[0].equalsIgnoreCase("QUIT")) {
+                            if (line.trim().split(" ").length == 1 &&
+                                    line.trim().split(" ")[0].equalsIgnoreCase("QUIT")) {
                                 // Close connections
                                 break;
                             }
 
-                            String result = server.delegate(commands);
+                            String result = server.delegate(line);
 
                             out.println(result);
 
                         }
 
                         reader.close();
-                        fileWriter.close();
                         out.close();
                         s.close();
+
                     } catch (IOException e) {
                         System.out.println("Error: " + e);
                     }
@@ -148,10 +209,7 @@ public class Server {
                 };
 
                 executor.submit(task);
-
-
             }
-
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
