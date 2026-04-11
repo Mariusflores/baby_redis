@@ -1,23 +1,50 @@
+import java.util.HashSet;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class InMemoryStore {
 
-    private final ConcurrentHashMap<String, String> store;
+    private final ConcurrentHashMap<String, String> stringStore;
+    private final ConcurrentHashMap<String, Set<String>> setStore;
 
-    public InMemoryStore(){
-        store = new ConcurrentHashMap<>();
+    public InMemoryStore() {
+        stringStore = new ConcurrentHashMap<>();
+        setStore = new ConcurrentHashMap<>();
     }
 
-    public void set(String key, String value){
-        store.put(key, value);
+    public void set(String key, String value) {
+        stringStore.put(key, value);
     }
 
-    public String get(String key){
-        return store.get(key);
+    public String get(String key) {
+        return stringStore.get(key);
     }
 
-    public void delete(String key){
-        store.remove(key);
+    public void delete(String key) {
+        stringStore.remove(key);
     }
-    
+
+    public void sAdd(String key, String value) {
+        var set = setStore.computeIfAbsent(key, v -> new HashSet<>());
+        set.add(value);
+    }
+
+    public void sRem(String key, String value) {
+
+        var set = setStore.get(key);
+
+        if (set != null) set.remove(value);
+
+    }
+
+    public boolean sIsMember(String key, String value) {
+        var set = setStore.get(key);
+        if (set == null) return false;
+        return set.contains(value);
+    }
+
+    public Set<String> sMembers(String key) {
+        return Set.copyOf(setStore.get(key));
+    }
+
 }
