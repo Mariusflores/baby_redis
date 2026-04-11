@@ -1,11 +1,11 @@
-import java.util.HashMap;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class InMemoryStore {
 
-    private final HashMap<String, String> store;
+    private final ConcurrentHashMap<String, String> store;
 
     public InMemoryStore(){
-        store = new HashMap<>();
+        store = new ConcurrentHashMap<>();
     }
 
     public void set(String key, String value){
