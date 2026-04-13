@@ -1,84 +1,65 @@
-package server;
-
 import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.List;
-import java.util.concurrent.DelayQueue;
-import java.util.concurrent.Delayed;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
+import java.util.Map;
+import java.util.concurrent.*;
 
 public class Server {
     private final InMemoryStore store = new InMemoryStore();
     private final DelayQueue<Delayed> expireQueue = new DelayQueue<>();
-    private final BufferedWriter fileWriter = new BufferedWriter(new FileWriter("queries.txt", true));
+    private final Map<String, Long> expireQueueState = new ConcurrentHashMap<>();
 
     public Server() throws IOException {
-        replay();
-
-
-        Runnable task = () -> {
+        // Retrieves instigates snapshot retrieval
+        retrieveSnapshot();
+        // Daemon thread, tracks and removes items from expireQueue
+        Runnable expireTrack = () -> {
             while (true) {
                 try {
                     ExpiringKey key = (ExpiringKey) expireQueue.take();
 
                     store.purge(key.getKey());
+                    expireQueueState.remove(key.getKey());
 
                 } catch (InterruptedException e) {
                     throw new RuntimeException(e);
                 }
             }
         };
+        Thread.ofVirtual().start(expireTrack);
 
-        Thread.ofVirtual().start(task);
-    }
+        // Sync snapshot every 30 seconds
+        Runnable syncSnapshot = () -> {
+            while (true) {
+                try {
+                    Thread.sleep(30000);
 
-    private void replay() throws IOException {
-        BufferedReader reader = new BufferedReader(new FileReader("queries.txt"));
-        String line;
-        List<String> expiredKeys = new ArrayList<>();
-
-        while ((line = reader.readLine()) != null) {
-            String[] params = parseOperation(line);
-            String operation = params[0];
-            String key = params[1];
-
-            switch (operation.toUpperCase()) {
-                case "SET" -> {
-                    var values = Arrays.copyOfRange(params, 2, params.length);
-                    String value = String.join(" ", values).trim();
-
-                    store.set(key, value);
-                }
-
-                case "DELETE" -> store.delete(key);
-                case "SADD" -> {
-                    var values = Arrays.copyOfRange(params, 2, params.length);
-                    store.sAdd(key, values);
-                }
-                case "SREM" -> {
-                    var values = Arrays.copyOfRange(params, 2, params.length);
-                    store.sRem(key, values);
-                }
-                case "EXPIRE", "EXP" -> {
-                    long expiryTimestamp = Long.parseLong(params[2]);
-
-                    if (expiryTimestamp < System.currentTimeMillis()) {
-                        expiredKeys.add(key);
-                    } else {
-                        ExpiringKey expiringKey = new ExpiringKey(key, expiryTimestamp);
-                        expireQueue.add(expiringKey);
-                    }
+                    instigateSnapshot();
+                } catch (InterruptedException e) {
+                    throw new RuntimeException(e);
                 }
             }
-        }
-        for (String expired : expiredKeys) {
-            store.purge(expired);
-        }
+
+        };
+
+        Thread.ofVirtual().start(syncSnapshot);
+    }
+
+    private void retrieveSnapshot() {
+
+        SnapshotData snapshot = store.readSnapshot();
+
+        expireQueueState.putAll(snapshot.expiryQueueSnapshot());
+
+        loadExpireQueue();
+    }
+
+    private void loadExpireQueue() {
+        expireQueueState.forEach((k, v) -> {
+            expireQueue.add(new ExpiringKey(k, v));
+        });
     }
 
     private String delegate(String line) {
@@ -98,7 +79,6 @@ public class Server {
                     return "ERR Value isn't provided";
                 }
                 store.set(key, value);
-                writeToFile(line);
                 return "OK";
             }
             case "GET" -> {
@@ -107,14 +87,11 @@ public class Server {
             }
             case "DELETE" -> {
                 store.delete(key);
-                writeToFile(line);
-
                 return "OK";
             }
             case "SADD" -> {
                 var values = Arrays.copyOfRange(commands, 2, commands.length);
                 store.sAdd(key, values);
-                writeToFile(line);
 
                 return "OK";
             }
@@ -122,7 +99,6 @@ public class Server {
                 var values = Arrays.copyOfRange(commands, 2, commands.length);
 
                 store.sRem(key, values);
-                writeToFile(line);
                 return "OK";
             }
             case "SISMEMBER", "SIM" -> {
@@ -156,14 +132,10 @@ public class Server {
                 ExpiringKey expiringKey = new ExpiringKey(key, expiryTimestamp);
 
                 expireQueue.add(expiringKey);
+                expireQueueState.put(key, expiryTimestamp);
 
                 // Format file write line Current timestamp + given time
 
-                commands[2] = Long.toString(expiryTimestamp);
-
-                String newLine = String.join(" ", commands);
-
-                writeToFile(newLine);
 
                 return String.format("Expires in %d seconds", value);
             }
@@ -175,20 +147,15 @@ public class Server {
     }
 
     public void close() throws IOException {
-        fileWriter.close();
+        instigateSnapshot();
+    }
+
+    private void instigateSnapshot() {
+        store.writeSnapshot(Map.copyOf(expireQueueState));
     }
 
     private String[] parseOperation(String line) {
         return line.trim().split(" ");
-    }
-
-    private void writeToFile(String line) {
-        try {
-            fileWriter.write(line + "\n");
-            fileWriter.flush();
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
     }
 
 
@@ -199,11 +166,11 @@ public class Server {
                 ExecutorService executor = Executors.newFixedThreadPool(10)
         ) {
             Server server = new Server();
-            System.out.println("Starting server...");
+            System.out.println("Starting main.java.server...");
 
-            System.out.println("server.Server started listening on port 6379... ");
+            System.out.println("main.java.Server started listening on port 6379... ");
 
-            // Shutdown hook to close server.Server file writer
+            // Shutdown hook to close main.java.Server file writer
             Thread closeServerHook = new Thread(() -> {
                 try {
                     server.close();
