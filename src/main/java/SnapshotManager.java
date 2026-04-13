@@ -10,7 +10,7 @@ public class SnapshotManager {
             Map<String, String> stringSnapshot,
             Map<String, Set<String>> setSnapshot,
             Map<String, Long> expiryQueue) {
-        BufferedWriter fileWriter = null;
+        BufferedWriter fileWriter;
         try {
             File temp = new File("snapshot_temp.txt");
 

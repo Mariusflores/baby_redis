@@ -57,9 +57,9 @@ public class Server {
     }
 
     private void loadExpireQueue() {
-        expireQueueState.forEach((k, v) -> {
-            expireQueue.add(new ExpiringKey(k, v));
-        });
+        expireQueueState.forEach((k, v) ->
+                expireQueue.add(new ExpiringKey(k, v))
+        );
     }
 
     private String delegate(String line) {
