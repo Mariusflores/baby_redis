@@ -35,6 +35,7 @@ See also: [baby-redis-client](https://github.com/mariusflores/baby-redis-client)
 
 - Java 21+
 - Maven
+- [baby-redis-client](https://github.com/mariusflores/baby-redis-client) installed locally (`mvn install` in the client repo)
 
 ### Building
 ```bash
@@ -76,4 +77,5 @@ OK
 (integer) 58
 > QUIT
 ```
+
 
