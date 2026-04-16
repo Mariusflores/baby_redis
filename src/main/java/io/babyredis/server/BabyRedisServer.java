@@ -39,6 +39,7 @@ public class BabyRedisServer {
         Thread.ofVirtual().start(expireTrack);
 
         // Sync snapshot every 30 seconds
+        // TODO confirm snapshot throws on error
         Runnable syncSnapshot = () -> {
             while (true) {
                 try {
@@ -195,9 +196,9 @@ public class BabyRedisServer {
                 ExecutorService executor = Executors.newFixedThreadPool(10)
         ) {
             BabyRedisServer server = new BabyRedisServer();
-            System.out.println("Starting main.java.org.example.server...");
+            System.out.println("Starting main.java.io.babyredis.server.BabyRedisServer...");
 
-            System.out.println("main.java.org.example.server.Server started listening on port 6379... ");
+            System.out.println("main.java.io.babyredis.server.BabyRedisServer started listening on port 6379... ");
 
             // Shutdown hook to close main.java.org.example.server.Server file writer
             Thread closeServerHook = new Thread(() -> {
