@@ -1,7 +1,11 @@
 # baby-redis
 
-A from-scratch implementation of a Redis-inspired in-memory key-value store, 
-built in Java as a deep dive into network protocols, data structures, and 
+![Build](https://github.com/mariusflores/baby-redis/actions/workflows/build.yml/badge.svg)
+![Java](https://img.shields.io/badge/Java-21-orange)
+![License](https://img.shields.io/badge/License-MIT-blue)
+
+A from-scratch implementation of a Redis-inspired in-memory key-value store,
+built in Java as a deep dive into network protocols, data structures, and
 systems programming.
 
 ## Status
@@ -14,9 +18,9 @@ systems programming.
 - Custom wire protocol for client-server communication
 - Built-in CLI for development and testing
 - Supported commands:
-  - **Strings:** `GET`, `SET`, `DELETE`
-  - **Sets:** `SADD`, `SREM`, `SISMEMBER`, `SMEMBERS`
-  - **Expiry:** `EXPIRE`, `TTL`
+    - **Strings:** `GET`, `SET`, `DELETE`
+    - **Sets:** `SADD`, `SREM`, `SISMEMBER`, `SMEMBERS`
+    - **Expiry:** `EXPIRE`, `TTL`
 
 ## Project Structure
 
@@ -26,7 +30,7 @@ baby-redis/
 └── cli/       # Development CLI tool
 ```
 
-See also: [baby-redis-client](https://github.com/mariusflores/baby-redis-client) 
+See also: [baby-redis-client](https://github.com/mariusflores/baby-redis-client)
 — the standalone Java client library.
 
 ## Getting Started
@@ -35,9 +39,11 @@ See also: [baby-redis-client](https://github.com/mariusflores/baby-redis-client)
 
 - Java 21+
 - Maven
-- [baby-redis-client](https://github.com/mariusflores/baby-redis-client) installed locally (`mvn install` in the client repo)
+- [baby-redis-client](https://github.com/mariusflores/baby-redis-client) installed locally (`mvn install` in the client
+  repo)
 
 ### Building
+
 ```bash
 git clone https://github.com/mariusflores/baby-redis.git
 cd baby-redis
@@ -50,6 +56,7 @@ mvn clean package
 ```bash
 java -jar target/baby-redis.jar
 ```
+
 The server listens on port `6379` by default.
 
 ### Running the CLI
