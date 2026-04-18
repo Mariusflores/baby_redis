@@ -16,7 +16,6 @@ systems programming.
 
 - TCP server accepting concurrent client connections
 - Custom wire protocol for client-server communication
-- Built-in CLI for development and testing
 - Supported commands:
     - **Strings:** `GET`, `SET`, `DELETE`
     - **Sets:** `SADD`, `SREM`, `SISMEMBER`, `SMEMBERS`
@@ -58,31 +57,4 @@ java -jar target/baby-redis.jar
 ```
 
 The server listens on port `6379` by default.
-
-### Running the CLI
-
-```bash
-mvn exec:java -Dexec.mainClass="io.babyredis.cli.BabyRedisCli"
-```
-
-Example session:
-
-```
-> SET greeting hello
-OK
-> GET greeting
-"hello"
-> SADD fruits apple banana cherry
-(integer) 3
-> SMEMBERS fruits
-1) "apple"
-2) "banana"
-3) "cherry"
-> EXPIRE greeting 60
-(integer) 1
-> TTL greeting
-(integer) 58
-> QUIT
-```
-
 
