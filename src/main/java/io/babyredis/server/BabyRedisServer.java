@@ -1,5 +1,8 @@
 package io.babyredis.server;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
@@ -13,6 +16,8 @@ import java.util.concurrent.Executors;
 
 public class BabyRedisServer {
     private final SnapshotManager snapshotManager = new SnapshotManager(new File("snapshot.txt"));
+    private static final Logger log = LoggerFactory.getLogger(BabyRedisServer.class);
+
 
     private final InMemoryStore store = new InMemoryStore(snapshotManager);
     private final DelayQueue<ExpiringKey> expireQueue = new DelayQueue<>();
@@ -190,15 +195,14 @@ public class BabyRedisServer {
 
 
     public static void main(String[] args) {
+
         try (
                 // Create a ServerSocket listening on port 6379
                 ServerSocket ss = new ServerSocket(6379);
                 ExecutorService executor = Executors.newFixedThreadPool(10)
         ) {
             BabyRedisServer server = new BabyRedisServer();
-            System.out.println("Starting main.java.io.babyredis.server.BabyRedisServer...");
-
-            System.out.println("main.java.io.babyredis.server.BabyRedisServer started listening on port 6379... ");
+            log.info("Server started listening on port 6379");
 
             // Shutdown hook to close main.java.org.example.server.Server file writer
             Thread closeServerHook = new Thread(() -> {
@@ -215,7 +219,7 @@ public class BabyRedisServer {
 
                 // Accept a connection from a client
                 Socket s = ss.accept();
-                System.out.println("org.example.cli.Client connected");
+                log.info("Client connected");
 
                 Runnable task = handleClient(s, server);
 
@@ -243,7 +247,7 @@ public class BabyRedisServer {
 
 
                 while ((line = reader.readLine()) != null) {
-                    System.out.println("Command " + line);
+                    log.debug("Command: {}", line);
 
                     if (line.trim().split(" ").length == 1 &&
                             line.trim().split(" ")[0].equalsIgnoreCase("QUIT")) {
@@ -262,7 +266,7 @@ public class BabyRedisServer {
                 s.close();
 
             } catch (IOException e) {
-                System.out.println("Error: " + e);
+                log.error("Client handler error: ", e);
             }
 
 
