@@ -63,5 +63,5 @@ The server listens on port `6379` by default.
 
 
 ## Related
-[baby-redis-client](https://github.com/Mariusflores/baby-redis-client) — Java Library handling socket connections to baby redis server
-[baby-redis-cli](https://github.com/Mariusflores/baby-redis-cli) — Devtool using this library to connect to server and perform command line operations
+[baby-redis-client](https://github.com/Mariusflores/baby-redis-client) — Java Library handling socket connections to baby redis server  
+[baby-redis-cli](https://github.com/Mariusflores/baby-redis-cli) — Devtool using this library to connect to server and perform command line operations  
