@@ -36,32 +36,32 @@ The baby-redis ecosystem consists of three independent repositories:
 
 - Java 21+
 - Maven
+- Docker (optional)
 
-## Building & Running the server locally
-
-### Building
+### Building from source
 
 ```bash
 git clone https://github.com/mariusflores/baby-redis.git
 cd baby-redis
 mvn clean package
-
 ```
 
-### Running the Server with Java
+### Running the Server
+
+**With Java:**
 
 ```bash
 java -jar target/baby-redis.jar
 ```
 
-### Running the Server with docker
+**With Docker (build locally):**
 
 ```bash
 docker build -t baby-redis .
 docker run -p 6379:6379 baby-redis
 ```
 
-### pull directly from Docker Hub:
+**With Docker (from Docker Hub):**
 
 ```bash
 docker pull mfloresdal/baby-redis
