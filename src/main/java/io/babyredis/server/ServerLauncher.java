@@ -22,7 +22,7 @@ public class ServerLauncher {
             BabyRedisServer server = new BabyRedisServer();
             log.info("Server started listening on port 6379");
 
-            // Shutdown hook to close main.java.org.example.server.Server file writer
+            // Shutdown hook to save snapshot and close connections
             Thread closeServerHook = new Thread(() -> {
                 try {
                     server.close();
@@ -51,15 +51,14 @@ public class ServerLauncher {
 
     private static Runnable handleClient(Socket s, BabyRedisServer server) {
         return () -> {
-            try {
-                // Declare a buffered reader
-                BufferedReader reader = new BufferedReader(
-                        new InputStreamReader(s.getInputStream(), StandardCharsets.UTF_8));
-
-                // Declare an Output Writer
-                PrintWriter out = new PrintWriter(
-                        new OutputStreamWriter(s.getOutputStream()), true
-                );
+            try (      // Declare a buffered reader
+                       BufferedReader reader = new BufferedReader(
+                               new InputStreamReader(s.getInputStream(), StandardCharsets.UTF_8));
+                       // Declare an Output Writer
+                       PrintWriter out = new PrintWriter(
+                               new OutputStreamWriter(s.getOutputStream()), true
+                       )
+            ) {
 
 
                 String line;
@@ -68,20 +67,15 @@ public class ServerLauncher {
                 while ((line = reader.readLine()) != null) {
                     log.debug("Command: {}", line);
 
-                    if (line.trim().split(" ").length == 1 &&
-                            line.trim().split(" ")[0].equalsIgnoreCase("QUIT")) {
-                        // Close connections
+                    if (line.trim().equalsIgnoreCase("QUIT")) {
                         break;
                     }
-
                     String result = server.execute(line);
 
                     out.println(result);
 
                 }
 
-                reader.close();
-                out.close();
             } catch (IOException e) {
                 log.error("Client handler error: ", e);
             } finally {

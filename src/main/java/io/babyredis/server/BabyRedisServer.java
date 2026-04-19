@@ -78,6 +78,11 @@ public class BabyRedisServer {
 
     public String execute(String line) {
         String[] commands = parseOperation(line);
+
+        if (commands.length == 1 && commands[0].equalsIgnoreCase("PING")) {
+            return "PONG";
+        }
+        
         if (commands.length < 2) {
             return "ERR expected at least <2> arguments";
         }
