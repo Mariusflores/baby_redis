@@ -1,5 +1,6 @@
 package io.babyredis.server;
 
+import io.babyredis.protocol.RespEncoder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -80,11 +81,12 @@ public class BabyRedisServer {
         String[] commands = parseOperation(line);
 
         if (commands.length == 1 && commands[0].equalsIgnoreCase("PING")) {
-            return "PONG";
+
+            return RespEncoder.encodeString("PONG");
         }
 
         if (commands.length < 2) {
-            return "ERR expected at least <2> arguments";
+            return RespEncoder.encodeError("ERR expected at least <2> arguments");
         }
         // Input format i.e. SET hello world
         String operation = commands[0];
@@ -95,14 +97,14 @@ public class BabyRedisServer {
                 var values = Arrays.copyOfRange(commands, 2, commands.length);
                 String value = String.join(" ", values).trim();
                 if (value.isEmpty()) {
-                    return "ERR Value isn't provided";
+                    return RespEncoder.encodeError("ERR Value isn't provided");
                 }
                 store.set(key, value);
-                return "OK";
+                return RespEncoder.encodeString("OK");
             }
             case "GET" -> {
                 String result = store.get(key);
-                return result == null ? "NOT FOUND" : result;
+                return result == null ? RespEncoder.encodeError("NOT FOUND") : RespEncoder.encodeBulkString(result);
             }
             case "DELETE" -> {
                 // Delete existing expire countdown
@@ -114,19 +116,19 @@ public class BabyRedisServer {
                 // Delete key from store
                 store.delete(key);
 
-                return "OK";
+                return RespEncoder.encodeString("OK");
             }
             case "SADD" -> {
                 var values = Arrays.copyOfRange(commands, 2, commands.length);
                 store.sAdd(key, values);
 
-                return "OK";
+                return RespEncoder.encodeString("OK");
             }
             case "SREM" -> {
                 var values = Arrays.copyOfRange(commands, 2, commands.length);
 
                 store.sRem(key, values);
-                return "OK";
+                return RespEncoder.encodeString("OK");
             }
             case "SISMEMBER", "SIM" -> {
                 String value = "";
@@ -134,36 +136,38 @@ public class BabyRedisServer {
                     value = commands[2];
                 }
                 if (value.isEmpty()) {
-                    return "ERR Value isn't provided";
+                    return RespEncoder.encodeError("ERR Value isn't provided");
 
                 }
-                return store.sIsMember(key, value) ? "TRUE" : "FALSE";
+                return store.sIsMember(key, value) ? RespEncoder.encodeInteger(1) : RespEncoder.encodeInteger(0);
 
             }
             case "SMEMBERS", "SM" -> {
 
                 var set = store.sMembers(key);
 
-                return String.join(",", set);
+                return RespEncoder.encodeArray(set.toArray(new String[0]));
             }
             case "TTL" -> {
                 Long timestamp = expireQueueState.get(key);
 
                 if (timestamp == null) {
-                    return "No expiry set";
+                    // return -1 when expiry not set
+                    return RespEncoder.encodeInteger(-1);
                 }
 
                 long ttl = (timestamp - System.currentTimeMillis()) / 1000;
                 if (ttl < 0) {
-                    return "Expired.";
+                    // Return -2 when expired
+                    return RespEncoder.encodeInteger(-2);
                 }
-                return String.format("Time to Expiry: %d s", ttl);
+                return RespEncoder.encodeInteger((int) ttl);
             }
             case "EXPIRE", "EXP" -> {
 
                 // Start simple parse the input, add to queue and write to file.
                 // Error handling next iteration
-                if (commands.length < 3) return "ERR missing arguments";
+                if (commands.length < 3) return RespEncoder.encodeError("ERR missing arguments");
 
                 long value = Long.parseLong(commands[2]);
                 long expiryTimestamp = System.currentTimeMillis() + (value * 1000);
@@ -177,11 +181,11 @@ public class BabyRedisServer {
                 // Format file write line Current timestamp + given time
 
 
-                return String.format("Expires in %d seconds", value);
+                return RespEncoder.encodeInteger(1);
             }
 
             default -> {
-                return "ERR Unknown Command";
+                return RespEncoder.encodeError("ERR Unknown Command");
             }
         }
     }
