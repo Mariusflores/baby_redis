@@ -1,7 +1,9 @@
 package io.babyredis.server.store;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -150,4 +152,25 @@ public class InMemoryStore {
 
         return data;
     }
+
+    /***
+     * Retrieves all keys currently stored in the in-memory store, including both string keys and set keys. 
+     * This method iterates through the key sets of both the stringStore and setStore maps, collects all unique keys into a list, 
+     * and returns them as an array of strings. This method can be used to handle the KEYS command in the Baby Redis server, 
+     * allowing clients to retrieve a list of all keys currently stored in memory.
+      *
+     * @return an array of strings containing all keys currently stored in the in-memory store, including both string keys and set keys
+     */
+    public String[] getAllKeys(){
+        List<String> keys = new ArrayList<>();
+
+        for(String key: stringStore.keySet()){
+            keys.add(key);
+        }
+              for(String key: setStore.keySet()){
+            keys.add(key);
+        }
+        return keys.toArray(new String[0]);
+    }
+
 }

@@ -195,6 +195,16 @@ public class BabyRedisServer {
                 return RespEncoder.encodeInteger(1);
             }
 
+            case "KEYS" -> {
+                if(commands.length > 2){
+                    // For simplicity, only support KEYS * for now
+                    return RespEncoder.encodeError("ERR Unsupported pattern, only KEYS * is supported");
+                }
+                String[] keys = store.getAllKeys();
+
+                return RespEncoder.encodeArray(keys);
+            }
+
             default -> {
                 return RespEncoder.encodeError("ERR Unknown Command");
             }
